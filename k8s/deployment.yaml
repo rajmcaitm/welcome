@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-service
-  namespace: triumph-kob
+  name: welcome
+  namespace: samrat-dev
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
-      app: my-service
+      app: welcome
   template:
     metadata:
       labels:
-        app: my-service
+        app: welcome
     spec:
       containers:
-        - name: my-service
-          image: artifactory.company.com/my-service:latest
+        - name: welcome
+          image: trial9r9d5d.jfrog.io/welcome:latest
           ports:
             - containerPort: 8080

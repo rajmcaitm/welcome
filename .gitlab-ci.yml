@@ -7,21 +7,21 @@ stages:
 
 variables:
   DOCKER_REGISTRY: artifactory.company.com
-  IMAGE_NAME: my-service
-  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  IMAGE_NAME: welcome
+  IMAGE_TAG: v1
 
 # Build and Push Docker image with Kaniko
 build-and-push:
   stage: push
   script:
-    - echo "{\"auths\":{\"$DOCKER_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - echo "{\"auths\":{\"trial9r9d5d.jfrog.io\":{\"username\":\"rajmca.itm@gmail.com\",\"password\":\"cmVmdGtuOjAxOjE3ODc4MzI5MTA6OElnTWtvUXZIdEZnWDhkellVZUVhS3N4RW9L\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR \
       --dockerfile Dockerfile \
-      --destination $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+      --destination trial9r9d5d.jfrog.io/$IMAGE_NAME:$IMAGE_TAG
 
 # Deploy to KOB
 deploy:
   stage: deploy
   image: bitnami/kubectl:latest
   script:
-    - kubectl apply -f k8s/deployment.yaml -n triumph-kob
+    - kubectl apply -f k8s/deployment.yaml -n samrat-dev
