@@ -1,0 +1,27 @@
+image: gcr.io/kaniko-project/executor:latest
+
+stages:
+  - build
+  - push
+  - deploy
+
+variables:
+  DOCKER_REGISTRY: artifactory.company.com
+  IMAGE_NAME: my-service
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+# Build and Push Docker image with Kaniko
+build-and-push:
+  stage: push
+  script:
+    - echo "{\"auths\":{\"$DOCKER_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR \
+      --dockerfile Dockerfile \
+      --destination $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
+# Deploy to KOB
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl apply -f k8s/deployment.yaml -n triumph-kob
