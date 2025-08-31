@@ -11,7 +11,7 @@ public class Producer {
     private final static String QUEUE_NAME3 = "samrat_dharm";
 
     public static void pushingMessageToRMQ() throws Exception {
-        int count = 1;
+        long count = 1;
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUri("amqps://psyzlqct:4qL1oOK9zItvFmpqShj49PbM6fYFf5qg@shrimp.rmq.cloudamqp.com/psyzlqct");
 
@@ -33,7 +33,7 @@ public class Producer {
                 channel.basicPublish("", QUEUE_NAME3,
                         null, message.getBytes("UTF-8"));
                 System.out.println("Message Sent: '" + message + "'");
-                Thread.sleep(10_000);
+                Thread.sleep(5_000);
             }
         }
     }
