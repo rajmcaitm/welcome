@@ -33,7 +33,7 @@ public class Producer {
                 channel.basicPublish("", QUEUE_NAME3,
                         null, message.getBytes("UTF-8"));
                 System.out.println("Message Sent: '" + message + "'");
-                Thread.sleep(3_000);
+                Thread.sleep(5_000);
             }
         }
     }
