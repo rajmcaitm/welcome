@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: welcome-deployment
+  labels:
+    app: welcome
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: welcome
+  template:
+    metadata:
+      labels:
+        app: welcome
+    spec:
+      containers:
+        - name: welcome
+          image: ghcr.io/<your-github-username>/welcome:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: welcome-config
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
