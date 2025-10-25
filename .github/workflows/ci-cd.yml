@@ -1,139 +1,173 @@
-name: Full CI/CD Pipeline
+name: Triumph CI/CD Pipeline
 
 on:
   push:
     branches:
-      - '**' # Trigger on push to all branches
+      - '**'   # triggers on all branches
+
+env:
+  APP_NAME: triumph-healthcheck-processor
+  IMAGE_NAME: triumph-healthcheck-processor
+  DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
+  MAVEN_CLI_OPTS: "-B -DskipTests"
 
 jobs:
-  # -----------------------------------------------------------
-  # 1️⃣ BUILD STAGE
-  # -----------------------------------------------------------
+  # --------------------------------------------------------
+  # 1️⃣ BUILD
+  # --------------------------------------------------------
   build:
-    name: 🏗️ Build - compile-package
+    name: Build (Compile & Package)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Cache Maven packages
-        uses: actions/cache@v4
+          distribution: temurin
+          java-version: 17
+      - name: Build with Maven
+        run: mvn $MAVEN_CLI_OPTS clean package
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
         with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          name: build-artifacts
+          path: target/*.jar
 
-      - name: Compile and Package
-        run: mvn clean package -DskipTests
-
-
-  # -----------------------------------------------------------
-  # 2️⃣ VERIFY BUILD STAGE (multiple checks vertically)
-  # -----------------------------------------------------------
-  verify-build:
-    name: 🔍 Verify Build
+  # --------------------------------------------------------
+  # 2️⃣ VERIFY BUILD (Parallel Jobs)
+  # --------------------------------------------------------
+  blackduck-scan:
+    name: BlackDuck Scan
+    runs-on: ubuntu-latest
     needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        check: [blackduck-scan, code-quality, xray_scan, checkmarx_scan, sast-scan, sca-scan, unit-test]
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - run: echo "Run BlackDuck scan here"
 
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run SonarQube or code quality scan here"
+
+  xray_scan:
+    name: Xray Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run JFrog Xray scan here"
+
+  checkmarx_scan:
+    name: Checkmarx Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run Checkmarx scan"
+
+  sast-scan:
+    name: SAST Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run static analysis tools (Snyk, Bandit, etc.)"
+
+  sca-scan:
+    name: SCA Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run dependency vulnerability scan"
+
+  unit-test:
+    name: Unit Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: 17
+      - name: Run Unit Tests
+        run: mvn test
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: target/surefire-reports/
 
-      - name: Run ${{ matrix.check }}
-        run: |
-          echo "Running ${{ matrix.check }}..."
-          sleep 3
-          if [[ "${{ matrix.check }}" == "blackduck-scan" || "${{ matrix.check }}" == "code-quality" || "${{ matrix.check }}" == "xray_scan" ]]; then
-            echo "❌ Simulating failed check for ${{ matrix.check }}"
-            exit 1
-          else
-            echo "✅ ${{ matrix.check }} passed successfully"
-          fi
-
-
-  # -----------------------------------------------------------
-  # 3️⃣ BUILD-CONTAINER STAGE
-  # -----------------------------------------------------------
-  build-container:
-    name: 🐳 Build Docker
-    needs: verify-build
+  # --------------------------------------------------------
+  # 3️⃣ BUILD-CONTAINER
+  # --------------------------------------------------------
+  build-docker:
+    name: Build Docker Image
     runs-on: ubuntu-latest
+    needs: [blackduck-scan, code-quality, xray_scan, checkmarx_scan, sast-scan, sca-scan, unit-test]
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
+      - uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build Docker Image
-        uses: docker/build-push-action@v6
+        run: docker build -t $DOCKER_REGISTRY:$GITHUB_SHA .
+      - name: Push Docker Image
+        run: docker push $DOCKER_REGISTRY:$GITHUB_SHA
+
+  # --------------------------------------------------------
+  # 4️⃣ VERIFY-DOCKER
+  # --------------------------------------------------------
+  container-scan:
+    name: Container Scan
+    runs-on: ubuntu-latest
+    needs: build-docker
+    steps:
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
         with:
-          context: .
-          push: false
-          tags: ghcr.io/${{ github.repository_owner }}/triumph-healthcheck:latest
+          image-ref: ${{ env.DOCKER_REGISTRY }}:${{ github.sha }}
+          format: table
+          exit-code: '0'
+          ignore-unfixed: true
 
-
-  # -----------------------------------------------------------
-  # 4️⃣ VERIFY-DOCKER STAGE
-  # -----------------------------------------------------------
-  verify-docker:
-    name: 🧪 Verify Docker - container-scan
-    needs: build-container
+  # --------------------------------------------------------
+  # 5️⃣ DEPLOY
+  # --------------------------------------------------------
+  kob-deploy-non-prod:
+    name: Deploy to Non-Prod
     runs-on: ubuntu-latest
+    needs: container-scan
     steps:
-      - name: Container Security Scan
+      - name: Set up Kubeconfig
         run: |
-          echo "Running container scan..."
-          sleep 2
-          echo "✅ No critical vulnerabilities found."
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+      - name: Deploy Image
+        run: |
+          kubectl -n non-prod set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=${{ env.DOCKER_REGISTRY }}:${{ github.sha }} --record
+          kubectl -n non-prod rollout status deployment/${{ env.APP_NAME }} --timeout=120s
 
-
-  # -----------------------------------------------------------
-  # 5️⃣ DEPLOY STAGE
-  # -----------------------------------------------------------
-  deploy:
-    name: 🚀 Deploy - kob-deploy-non-prod
-    needs: verify-docker
+  # --------------------------------------------------------
+  # 6️⃣ VALIDATE DEPLOY
+  # --------------------------------------------------------
+  validate-non-prod-deploy:
+    name: Validate Deployment
     runs-on: ubuntu-latest
+    needs: kob-deploy-non-prod
     steps:
-      - name: Deploy to Non-Prod
+      - name: Validate Pods
+        run: kubectl get pods -n non-prod
+      - name: Check Health Endpoint
         run: |
-          echo "Deploying application to KOB Non-Prod environment..."
-          sleep 3
-          echo "✅ Deployment completed successfully."
-
-
-  # -----------------------------------------------------------
-  # 6️⃣ VALIDATE-DEPLOY STAGE
-  # -----------------------------------------------------------
-  validate-deploy:
-    name: ✅ Validate Non-Prod Deploy
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Validate Deployment
-        run: |
-          echo "Validating Non-Prod deployment..."
-          sleep 3
-          echo "✅ Validation completed successfully."
+          SERVICE_URL="http://nonprod.example.com/actuator/health"
+          echo "Checking $SERVICE_URL"
+          curl --fail --silent $SERVICE_URL || (echo "Health check failed" && exit 1)
