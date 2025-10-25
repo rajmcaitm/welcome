@@ -20,8 +20,8 @@ jobs:
   # ==========================================================
   # 1️⃣ BUILD STAGE
   # ==========================================================
-  build:
-    name: 🏗️ Build & Package
+  Build & Package:
+    name: build
     runs-on: ubuntu-latest
 
     steps:
