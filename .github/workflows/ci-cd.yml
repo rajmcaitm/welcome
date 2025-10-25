@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - '**'   # triggers on all branches
+permissions:
+  contents: read
+  packages: write
 
 env:
   APP_NAME: triumph-healthcheck-processor
