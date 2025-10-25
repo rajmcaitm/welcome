@@ -3,7 +3,7 @@ name: Build and Deploy to K8s
 on:
   push:
     branches:
-      - master
+      - '**'   # Triggers on push to all branches
 
 jobs:
   build-deploy:
