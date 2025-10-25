@@ -1,2 +1,0 @@
---------------Welcome to MyBank!-----------------------
-    Secure, Reliable, and Scalable Banking Platform
