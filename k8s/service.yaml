@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: welcome-service
+  name: welcome
 spec:
   type: LoadBalancer
   selector:
