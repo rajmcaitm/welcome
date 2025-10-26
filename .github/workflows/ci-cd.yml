@@ -187,13 +187,12 @@ jobs:
         shell: pwsh
         run: |
           $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
-          kubectl config view
 
       - name: Validate Pods
         shell: pwsh
         run: |
           echo "Listing pods in samrat-dev namespace"
-          kubectl get pods -n samrat-dev
+          kubectl get pods -n samrat-dev | grep welcome
 
       - name: Check Health Endpoint
         shell: pwsh
