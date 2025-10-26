@@ -180,15 +180,29 @@ jobs:
   # --------------------------------------------------------
   validate-non-prod-deploy:
     name: validate-non-prod-deploy
-    runs-on: self-hosted
+    runs-on: self-hosted   # your Windows runner
     needs: kob-deploy-non-prod
     steps:
+      - name: Set KUBECONFIG
+        shell: pwsh
+        run: |
+          $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
+          kubectl config view
+
       - name: Validate Pods
         shell: pwsh
-        run: kubectl get pods -n samrat-dev
+        run: |
+          echo "Listing pods in samrat-dev namespace"
+          kubectl get pods -n samrat-dev
+
       - name: Check Health Endpoint
         shell: pwsh
         run: |
-          SERVICE_URL="http://localhost:8080/mybank/welcome?name=Raj"
-          echo "Checking $SERVICE_URL"
-          curl --fail --silent $SERVICE_URL || (echo "Health check failed" && exit 1)
+          $SERVICE_URL = "http://localhost:8080/mybank/welcome?name=Raj"
+          Write-Host "Checking $SERVICE_URL"
+          try {
+            Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 10
+          } catch {
+            Write-Error "Health check failed"
+            exit 1
+          }
