@@ -157,18 +157,15 @@ jobs:
         shell: pwsh
         run: |
           $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
-          kubectl config view        
-
-      - name: Verify cluster access
-        shell: pwsh
-        run: |
-          echo "Runner test successful!"
-          hostname
-          whoami
-          echo "Using kubeconfig"
+          kubectl config use-context docker-desktop
           kubectl get nodes
 
-      - name: Create Docker registry secret (GHCR)
+      - name: Create namespace if not exists
+        shell: pwsh
+        run: |
+          kubectl get namespace samrat-dev -o name || kubectl create namespace samrat-dev
+
+      - name: Create or update GHCR pull secret
         shell: pwsh
         run: |
           kubectl create secret docker-registry ghcr-secret `
@@ -178,44 +175,62 @@ jobs:
             --docker-email=rajmca.itm@gmail.com `
             -n samrat-dev --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Deploy app to namespace
+      - name: Deploy manifests
         shell: pwsh
         run: |
-          kubectl get namespace samrat-dev || kubectl create namespace samrat-dev
-          # Add imagePullSecrets to deployment if not already in YAML
-          kubectl apply -f k8s/ -n samrat-dev
-          kubectl set image deployment/welcome welcome=${{ env.DOCKER_REGISTRY }}:${{ github.sha }} -n samrat-dev
-          kubectl patch deployment welcome -n samrat-dev -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"ghcr-secret"}]}}}}'
+          kubectl apply -f k8s/configmap.yaml -n samrat-dev
+          kubectl apply -f k8s/service.yaml -n samrat-dev
+          kubectl apply -f k8s/deployment.yaml -n samrat-dev
           kubectl rollout status deployment/welcome -n samrat-dev
-          kubectl get all -n samrat-dev | Select-String welcome
+          kubectl get pods -n samrat-dev
 
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY
   # --------------------------------------------------------
   validate-non-prod-deploy:
     name: validate-non-prod-deploy
-    runs-on: self-hosted   # your Windows runner
+    runs-on: self-hosted
     needs: kob-deploy-non-prod
+
     steps:
       - name: Set KUBECONFIG
         shell: pwsh
         run: |
           $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
+          kubectl config use-context docker-desktop
+          kubectl get nodes
 
-      - name: Validate Pods
+      - name: Verify welcome pods
         shell: pwsh
         run: |
-          echo "Listing pods in samrat-dev namespace"
-          kubectl get pods -n samrat-dev | grep welcome
+          Write-Host "Checking welcome pods in samrat-dev namespace..."
+          $pods = kubectl get pods -n samrat-dev --no-headers | Select-String "welcome"
+          if (-not $pods) {
+            Write-Error "No welcome pods found!"
+            exit 1
+          }
+          kubectl get pods -n samrat-dev -o wide | Select-String "welcome"
 
-      - name: Check Health Endpoint
+      - name: Wait for pods to be Ready
+        shell: pwsh
+        run: |
+          Write-Host "Waiting for all welcome pods to become Ready..."
+          kubectl wait --for=condition=ready pod -l app=welcome -n samrat-dev --timeout=120s
+
+      - name: Check application health endpoint
         shell: pwsh
         run: |
           $SERVICE_URL = "http://localhost:31007/mybank/welcome?name=Raj"
-          Write-Host "Checking $SERVICE_URL"
+          Write-Host "Performing health check: $SERVICE_URL"
           try {
-            Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 10
+            $response = Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 15
+            if ($response.StatusCode -eq 200) {
+              Write-Host "✅ Health check passed! Application is reachable."
+            } else {
+              Write-Error "❌ Health check failed with status code $($response.StatusCode)"
+              exit 1
+            }
           } catch {
-            Write-Error "Health check failed"
+            Write-Error "❌ Health check failed: $($_.Exception.Message)"
             exit 1
           }

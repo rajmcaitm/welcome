@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: welcome
+  namespace: samrat-dev
   labels:
     app: welcome
 spec:
@@ -16,7 +17,7 @@ spec:
     spec:
       containers:
         - name: welcome
-          image: ghcr.io/rajmcaitm/welcome:latest
+          image: ghcr.io/rajmcaitm/welcome:${GITHUB_SHA}
           ports:
             - containerPort: 8080
           envFrom:
@@ -29,3 +30,17 @@ spec:
             limits:
               cpu: "500m"
               memory: "1Gi"
+          readinessProbe:                     # ✅ Optional but strongly recommended
+            httpGet:
+              path: /mybank/welcome?name=Raj
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:                      # ✅ Optional (ensures restart if unhealthy)
+            httpGet:
+              path: /mybank/welcome?name=Raj
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      imagePullSecrets:
+        - name: ghcr-secret                   # ✅ ensures Docker Desktop can pull from GHCR
