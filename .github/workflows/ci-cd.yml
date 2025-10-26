@@ -166,7 +166,7 @@ jobs:
           hostname
           whoami
           echo "Using kubeconfig"
-          kubectl get nodes
+#          kubectl get nodes
 
       - name: Deploy app to namespace
         run: |
