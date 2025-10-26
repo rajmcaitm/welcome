@@ -168,12 +168,26 @@ jobs:
           echo "Using kubeconfig"
           kubectl get nodes
 
+      - name: Create Docker registry secret (GHCR)
+        shell: pwsh
+        run: |
+          kubectl create secret docker-registry ghcr-secret `
+            --docker-server=ghcr.io `
+            --docker-username=${{ github.actor }} `
+            --docker-password=${{ secrets.GHCR_PAT }} `
+            --docker-email=example@example.com `
+            -n samrat-dev --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Deploy app to namespace
+        shell: pwsh
         run: |
           kubectl get namespace samrat-dev || kubectl create namespace samrat-dev
+          # Add imagePullSecrets to deployment if not already in YAML
           kubectl apply -f k8s/ -n samrat-dev
+          kubectl set image deployment/welcome welcome=${{ env.DOCKER_REGISTRY }}:${{ github.sha }} -n samrat-dev
+          kubectl patch deployment welcome -n samrat-dev -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"ghcr-secret"}]}}}}'
           kubectl rollout status deployment/welcome -n samrat-dev
-          kubectl get all -n samrat-dev | grep welcome
+          kubectl get all -n samrat-dev | Select-String welcome
 
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY
