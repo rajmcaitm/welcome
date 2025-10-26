@@ -174,8 +174,8 @@ jobs:
           kubectl create secret docker-registry ghcr-secret `
             --docker-server=ghcr.io `
             --docker-username=${{ github.actor }} `
-            --docker-password=${{ secrets.GHCR_PAT }} `
-            --docker-email=example@example.com `
+            --docker-password=${{ secrets.welcome_token }} `
+            --docker-email=rajmca.itm@gmail.com `
             -n samrat-dev --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy app to namespace
