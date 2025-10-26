@@ -184,9 +184,9 @@ jobs:
     needs: kob-deploy-non-prod
     steps:
       - name: Validate Pods
-        run: kubectl get pods -n non-prod
+        run: kubectl get pods -n samrat-dev
       - name: Check Health Endpoint
         run: |
-          SERVICE_URL="http://nonprod.example.com/actuator/health"
+          SERVICE_URL="http://localhost:8080/mybank/welcome?name=Raj"
           echo "Checking $SERVICE_URL"
           curl --fail --silent $SERVICE_URL || (echo "Health check failed" && exit 1)
