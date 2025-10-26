@@ -156,7 +156,7 @@ jobs:
       - name: Set up Kubeconfig
         run: |
           mkdir -p ~/.kube
-          $env:KUBECONFIG="C:\Users\RAJMC\.kube\config"
+          cp /path/to/kube/config ~/.kube/config
           chmod 600 ~/.kube/config
           kubectl config view
 
