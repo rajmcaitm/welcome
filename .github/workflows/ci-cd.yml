@@ -157,11 +157,8 @@ jobs:
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
-      - name: Deploy Image
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 --decode > ~/.kube/config
           chmod 600 ~/.kube/config
+          kubectl config view
 
       - name: Verify cluster access
         run: |
