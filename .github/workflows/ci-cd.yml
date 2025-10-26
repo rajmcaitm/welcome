@@ -197,7 +197,7 @@ jobs:
       - name: Check Health Endpoint
         shell: pwsh
         run: |
-          $SERVICE_URL = "http://localhost:8080/mybank/welcome?name=Raj"
+          $SERVICE_URL = "http://localhost:31007/mybank/welcome?name=Raj"
           Write-Host "Checking $SERVICE_URL"
           try {
             Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 10
