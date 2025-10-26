@@ -156,8 +156,7 @@ jobs:
       - name: Set up Kubeconfig
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
-          echo "KUBECONFIG=C:\\Users\\RAJMC\\.kube\\config" >> $GITHUB_ENV
+          $env:KUBECONFIG="C:\Users\RAJMC\.kube\config"
           chmod 600 ~/.kube/config
           kubectl config view
 
