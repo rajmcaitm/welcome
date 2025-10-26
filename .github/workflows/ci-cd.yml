@@ -9,8 +9,8 @@ permissions:
   packages: write
 
 env:
-  APP_NAME: triumph-healthcheck-processor
-  IMAGE_NAME: triumph-healthcheck-processor
+  APP_NAME: welcome
+  IMAGE_NAME: welcome:3c81351d6a38fae4b66fbec4bc9d7bac78a8caf2
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
 
