@@ -1,0 +1,207 @@
+name: Triumph CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - '**'   # triggers on all branches
+permissions:
+  contents: read
+  packages: write
+
+env:
+  APP_NAME: welcome
+  IMAGE_NAME: welcome:3c81351d6a38fae4b66fbec4bc9d7bac78a8caf2
+  DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
+  MAVEN_CLI_OPTS: "-B -DskipTests"
+
+jobs:
+  # --------------------------------------------------------
+  # 1️⃣ BUILD
+  # --------------------------------------------------------
+  build:
+    name: compile-package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Build with Maven
+        run: mvn $MAVEN_CLI_OPTS clean package
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: target/*.jar
+
+  # --------------------------------------------------------
+  # 2️⃣ VERIFY BUILD (Parallel Jobs)
+  # --------------------------------------------------------
+  blackduck-scan:
+    name: blackduck-scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run BlackDuck scan here"
+
+  code-quality:
+    name: code-quality
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run SonarQube or code quality scan here"
+
+  xray_scan:
+    name: xray_scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run JFrog Xray scan here"
+
+  checkmarx_scan:
+    name: checkmarx_scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run Checkmarx scan"
+
+  sast-scan:
+    name: sast-scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run static analysis tools (Snyk, Bandit, etc.)"
+
+  sca-scan:
+    name: sca-scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run dependency vulnerability scan"
+
+  unit-test:
+    name: unit-test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Run Unit Tests
+        run: mvn test
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: target/surefire-reports/
+
+  # --------------------------------------------------------
+  # 3️⃣ BUILD-CONTAINER
+  # --------------------------------------------------------
+  build-docker:
+    name: build-docker-image
+    runs-on: ubuntu-latest
+    needs: [blackduck-scan, code-quality, xray_scan, checkmarx_scan, sast-scan, sca-scan, unit-test]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Docker Image
+        run: docker build -t $DOCKER_REGISTRY:$GITHUB_SHA .
+      - name: Push Docker Image
+        run: docker push $DOCKER_REGISTRY:$GITHUB_SHA
+
+  # --------------------------------------------------------
+  # 4️⃣ VERIFY-DOCKER
+  # --------------------------------------------------------
+  container-scan:
+    name: container-scan
+    runs-on: ubuntu-latest
+    needs: build-docker
+    steps:
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_REGISTRY }}:${{ github.sha }}
+          format: table
+          exit-code: '0'
+          ignore-unfixed: true
+
+  # --------------------------------------------------------
+  # 5️⃣ DEPLOY
+  # --------------------------------------------------------
+  kob-deploy-non-prod:
+    name: deploy-to-local-kubernetes
+    runs-on: self-hosted
+    needs: container-scan
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set KUBECONFIG
+        shell: pwsh
+        run: |
+          $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
+          kubectl config view        
+
+      - name: Verify cluster access
+        shell: pwsh
+        run: |
+          echo "Runner test successful!"
+          hostname
+          whoami
+          echo "Using kubeconfig"
+          kubectl get nodes
+
+      - name: Deploy app to namespace
+        run: |
+          kubectl get namespace samrat-dev || kubectl create namespace samrat-dev
+          kubectl apply -f k8s/ -n samrat-dev
+          kubectl rollout status deployment/welcome -n samrat-dev
+          kubectl get all -n samrat-dev | grep welcome
+
+  # --------------------------------------------------------
+  # 6️⃣ VALIDATE DEPLOY
+  # --------------------------------------------------------
+  validate-non-prod-deploy:
+    name: validate-non-prod-deploy
+    runs-on: self-hosted   # your Windows runner
+    needs: kob-deploy-non-prod
+    steps:
+      - name: Set KUBECONFIG
+        shell: pwsh
+        run: |
+          $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
+
+      - name: Validate Pods
+        shell: pwsh
+        run: |
+          echo "Listing pods in samrat-dev namespace"
+          kubectl get pods -n samrat-dev | grep welcome
+
+      - name: Check Health Endpoint
+        shell: pwsh
+        run: |
+          $SERVICE_URL = "http://localhost:31007/mybank/welcome?name=Raj"
+          Write-Host "Checking $SERVICE_URL"
+          try {
+            Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 10
+          } catch {
+            Write-Error "Health check failed"
+            exit 1
+          }
