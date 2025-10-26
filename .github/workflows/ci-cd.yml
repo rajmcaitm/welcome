@@ -147,20 +147,20 @@ jobs:
   # --------------------------------------------------------
   kob-deploy-non-prod:
     name: deploy-to-local-kubernetes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: container-scan
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Kubeconfig
+      - name: Set KUBECONFIG
+        shell: pwsh
         run: |
-          mkdir -p ~/.kube
-          cp /path/to/kube/config ~/.kube/config
-          chmod 600 ~/.kube/config
-          kubectl config view
+          $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
+          kubectl config view        
 
       - name: Verify cluster access
+        shell: pwsh
         run: |
           echo "Runner test successful!"
           hostname
