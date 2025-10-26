@@ -180,12 +180,14 @@ jobs:
   # --------------------------------------------------------
   validate-non-prod-deploy:
     name: validate-non-prod-deploy
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: kob-deploy-non-prod
     steps:
       - name: Validate Pods
+        shell: pwsh
         run: kubectl get pods -n samrat-dev
       - name: Check Health Endpoint
+        shell: pwsh
         run: |
           SERVICE_URL="http://localhost:8080/mybank/welcome?name=Raj"
           echo "Checking $SERVICE_URL"
