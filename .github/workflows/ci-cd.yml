@@ -13,7 +13,7 @@ env:
   IMAGE_TAG: ${{ github.sha }}
   IMAGE_NAME: welcome:${{ github.sha }}
   NAMESPACE: samrat-dev
-  KUBECONFIG_PATH: "C:\Users\RAJMC\.kube\config"
+  KUBECONFIG_PATH: C:\Users\RAJMC\.kube\config
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
   HEALTH_URL: http://localhost:31007/mybank/welcome?name=Raj
