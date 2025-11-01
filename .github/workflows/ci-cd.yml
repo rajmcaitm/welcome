@@ -16,6 +16,7 @@ env:
   KUBECONFIG_PATH: "C:\Users\RAJMC\.kube\config"
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
+  HEALTH_URL: http://localhost:31007/mybank/welcome?name=Raj
 
 jobs:
   # --------------------------------------------------------
@@ -189,53 +190,60 @@ jobs:
             kubectl rollout status deployment/${{ env.APP_NAME }} -n ${{ env.NAMESPACE }}
             kubectl get pods -n ${{ env.NAMESPACE }}
 
-  # --------------------------------------------------------
-  # 6️⃣ VALIDATE DEPLOY
-  # --------------------------------------------------------
+# --------------------------------------------------------
+# 6️⃣ VALIDATE DEPLOY
+# --------------------------------------------------------
   validate-non-prod-deploy:
     name: validate-non-prod-deploy
     runs-on: self-hosted
     needs: kob-deploy-non-prod
-
     steps:
-      - name: Set KUBECONFIG
-        shell: pwsh
-        run: |
-          $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
-          kubectl config use-context docker-desktop
-          kubectl get nodes
+    - name: Set up KUBECONFIG
+      shell: pwsh
+      run: |
+        $env:KUBECONFIG = "${{ env.KUBECONFIG_PATH }}"
+        kubectl config use-context docker-desktop
+        kubectl cluster-info
+        kubectl get nodes
 
-      - name: Verify welcome pods
-        shell: pwsh
-        run: |
-          Write-Host "Checking welcome pods in samrat-dev namespace..."
-          $pods = kubectl get pods -n samrat-dev --no-headers | Select-String "welcome"
-          if (-not $pods) {
-            Write-Error "No welcome pods found!"
+    - name: Verify ${{ env.APP_NAME }} pods
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Checking ${{ env.APP_NAME }} pods in namespace '${{ env.NAMESPACE }}'..."
+        $pods = kubectl get pods -n ${{ env.NAMESPACE }} --no-headers | Select-String "${{ env.APP_NAME }}"
+        if (-not $pods) {
+          Write-Error "❌ No pods found for ${{ env.APP_NAME }}!"
+          exit 1
+        }
+        kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
+
+    - name: Wait for pods to be Ready
+      shell: pwsh
+      run: |
+        Write-Host "⏳ Waiting for ${{ env.APP_NAME }} pods to become Ready..."
+        kubectl wait --for=condition=ready pod -l app=${{ env.APP_NAME }} -n ${{ env.NAMESPACE }} --timeout=180s
+        Write-Host "✅ All pods are Ready."
+
+    - name: Check application health endpoint
+      shell: pwsh
+      run: |
+        $SERVICE_URL = "${{ env.HEALTH_URL }}"
+        Write-Host "🌐 Performing health check on: $SERVICE_URL"
+        try {
+          $response = Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 20
+          if ($response.StatusCode -eq 200) {
+            Write-Host "✅ Health check passed! Application is reachable."
+          } else {
+            Write-Error "❌ Health check failed with status code $($response.StatusCode)"
             exit 1
           }
-          kubectl get pods -n samrat-dev -o wide | Select-String "welcome"
+        } catch {
+          Write-Error "❌ Health check failed: $($_.Exception.Message)"
+          exit 1
+        }
 
-      - name: Wait for pods to be Ready
-        shell: pwsh
-        run: |
-          Write-Host "Waiting for all welcome pods to become Ready..."
-          kubectl wait --for=condition=ready pod -l app=welcome -n samrat-dev --timeout=120s
-
-      - name: Check application health endpoint
-        shell: pwsh
-        run: |
-          $SERVICE_URL = "http://localhost:31007/mybank/welcome?name=Raj"
-          Write-Host "Performing health check: $SERVICE_URL"
-          try {
-            $response = Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 15
-            if ($response.StatusCode -eq 200) {
-              Write-Host "✅ Health check passed! Application is reachable."
-            } else {
-              Write-Error "❌ Health check failed with status code $($response.StatusCode)"
-              exit 1
-            }
-          } catch {
-            Write-Error "❌ Health check failed: $($_.Exception.Message)"
-            exit 1
-          }
+    - name: Display deployment rollout history
+      shell: pwsh
+      run: |
+        Write-Host "📜 Deployment rollout history for ${{ env.APP_NAME }}:"
+        kubectl rollout history deployment/${{ env.APP_NAME }} -n ${{ env.NAMESPACE }}
