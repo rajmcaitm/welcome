@@ -196,6 +196,7 @@ jobs:
           (Get-Content k8s/deployment.yaml) -replace '\${GITHUB_SHA}', $imageTag | kubectl apply -f - -n $namespace
 
           # Wait for rollout and show status
+          kubectl rollout restart deployment/$appName -n $namespace
           kubectl rollout status deployment/welcome -n $namespace --timeout=120s
           kubectl get pods -n $namespace | Select-String $appName
 
