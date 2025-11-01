@@ -184,12 +184,19 @@ jobs:
       - name: Apply manifests
         shell: pwsh
         run: |
-            $namespace = "${{ env.NAMESPACE }}"
-            kubectl apply -f k8s/configmap.yaml -n $namespace
-            kubectl apply -f k8s/service.yaml -n $namespace
-            kubectl apply -f k8s/deployment.yaml -n $namespace
-            kubectl rollout status deployment/welcome -n $namespace --timeout=120s
-            kubectl get pods -n $namespace
+          $namespace = "${{ env.NAMESPACE }}"
+          $imageTag = "${{ github.sha }}"
+
+          # Apply configmap and service first
+          kubectl apply -f k8s/configmap.yaml -n $namespace
+          kubectl apply -f k8s/service.yaml -n $namespace
+
+          # Replace ${GITHUB_SHA} in deployment.yaml and apply dynamically
+          (Get-Content k8s/deployment.yaml) -replace '\${GITHUB_SHA}', $imageTag | kubectl apply -f - -n $namespace
+
+          # Wait for rollout and show status
+          kubectl rollout status deployment/welcome -n $namespace --timeout=120s
+          kubectl get pods -n $namespace | Select-String $appName
 
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY
