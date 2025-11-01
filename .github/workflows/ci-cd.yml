@@ -184,7 +184,7 @@ jobs:
       - name: Apply manifests
         shell: pwsh
         run: |
-            $namespace = ${{ env.NAMESPACE }}
+            $namespace = "${{ env.NAMESPACE }}"
             kubectl apply -f k8s/configmap.yaml -n $namespace
             kubectl apply -f k8s/service.yaml -n $namespace
             kubectl apply -f k8s/deployment.yaml -n $namespace
