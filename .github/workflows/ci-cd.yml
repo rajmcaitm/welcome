@@ -214,8 +214,8 @@ jobs:
            if (-not $pods) {
             Write-Error "❌ No pods found for ${{ env.APP_NAME }}!"
             exit 1
-        }
-      kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
+          }
+         kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
 
       - name: Wait for pods to be Ready
         shell: pwsh
