@@ -186,6 +186,7 @@ jobs:
         run: |
           $namespace = "${{ env.NAMESPACE }}"
           $imageTag = "${{ github.sha }}"
+          $appName = "${{ env.APP_NAME }}"
 
           # Apply configmap and service first
           kubectl apply -f k8s/configmap.yaml -n $namespace
