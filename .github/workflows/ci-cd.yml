@@ -16,7 +16,7 @@ env:
   KUBECONFIG_PATH: C:\Users\RAJMC\.kube\config
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
-  HEALTH_URL: http://localhost:31010/welcome/welcome?name=Raj
+  HEALTH_URL: http://localhost:31010/welcome-app/welcome?name=Raj
 
 jobs:
   # --------------------------------------------------------
@@ -182,15 +182,14 @@ jobs:
             kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
 
       - name: Apply manifests
-        shell: bash
+        shell: pwsh
         run: |
-            export IMAGE_TAG=${GITHUB_SHA}
-            export DOCKER_REGISTRY=ghcr.io/${{ github.repository }}
-            kubectl apply -f k8s/configmap.yaml -n ${{ env.NAMESPACE }}
-            kubectl apply -f k8s/service.yaml -n ${{ env.NAMESPACE }}
-            kubectl apply k8s/deployment.yaml | kubectl apply -f - -n samrat-dev
-            kubectl rollout status deployment/${{ env.APP_NAME }} -n ${{ env.NAMESPACE }}
-            kubectl get pods -n ${{ env.NAMESPACE }}
+            $namespace = ${{ env.NAMESPACE }}
+            kubectl apply -f k8s/configmap.yaml -n $namespace
+            kubectl apply -f k8s/service.yaml -n $namespace
+            kubectl apply -f k8s/deployment.yaml -n $namespace
+            kubectl rollout status deployment/welcome -n $namespace
+            kubectl get pods -n $namespace
 
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY

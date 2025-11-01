@@ -32,13 +32,13 @@ spec:
               memory: "1Gi"
 #          readinessProbe:                     # ✅ Optional but strongly recommended
 #            httpGet:
-#              path: /mybank/welcome?name=Raj
+#              path: /mybank-app/welcome?name=Raj
 #              port: 8080
 #            initialDelaySeconds: 10
 #            periodSeconds: 5
           livenessProbe:                      # ✅ Optional (ensures restart if unhealthy)
             httpGet:
-              path: /welcome/welcome?name=Raj
+              path: /welcome-app/welcome?name=Raj
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
