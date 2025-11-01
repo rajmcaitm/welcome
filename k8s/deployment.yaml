@@ -30,12 +30,12 @@ spec:
             limits:
               cpu: "500m"
               memory: "1Gi"
-          readinessProbe:                     # ✅ Optional but strongly recommended
-            httpGet:
-              path: /mybank/welcome?name=Raj
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 5
+#          readinessProbe:                     # ✅ Optional but strongly recommended
+#            httpGet:
+#              path: /mybank/welcome?name=Raj
+#              port: 8080
+#            initialDelaySeconds: 10
+#            periodSeconds: 5
           livenessProbe:                      # ✅ Optional (ensures restart if unhealthy)
             httpGet:
               path: /mybank/welcome?name=Raj
