@@ -182,7 +182,7 @@ jobs:
             kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
 
       - name: Apply manifests
-        shell: pwsh
+        shell: bash
         run: |
             export IMAGE_TAG=${GITHUB_SHA}
             export DOCKER_REGISTRY=ghcr.io/${{ github.repository }}
