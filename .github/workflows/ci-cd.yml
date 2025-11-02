@@ -232,7 +232,7 @@ jobs:
         shell: pwsh
         run: |
           # Forward service port 8080 → localhost:31010 in background
-          Start-Process kubectl -ArgumentList 'port-forward service/welcome 31010:80 -n samrat-dev' -NoNewWindow
+          Start-Process kubectl -ArgumentList 'port-forward service/welcome 31010:8080 -n samrat-dev' -NoNewWindow
           # Give port-forward some time to start
            Start-Sleep -Seconds 30
 
