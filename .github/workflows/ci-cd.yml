@@ -239,9 +239,9 @@ jobs:
         shell: bash
         run: |
           # Forward service port 8080 → localhost:31010 in background
-          nohup kubectl port-forward service/welcome 31010:8080 -n samrat-dev > portforward.log 2>&1 &
+          Start-Process kubectl -ArgumentList 'port-forward service/welcome 31010:80 -n samrat-dev' -NoNewWindow
           # Give port-forward some time to start
-           sleep 30    
+           Start-Sleep -Seconds 30
 
       - name: Check application health endpoint
         shell: pwsh
