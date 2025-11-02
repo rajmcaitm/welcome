@@ -228,13 +228,6 @@ jobs:
           }
           kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
 
-      - name: Wait for pods to be Ready
-        shell: pwsh
-        run: |
-          Write-Host "⏳ Waiting for ${{ env.APP_NAME }} pods to become Ready..."
-          kubectl wait --for=condition=ready pod -l app=${{ env.APP_NAME }} -n ${{ env.NAMESPACE }} --timeout=180s
-          Write-Host "✅ All pods are Ready."
-
       - name: Port-forward welcome service
         shell: pwsh
         run: |
