@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: welcome
-          image: ghcr.io/rajmcaitm/welcome:${GITHUB_SHA}
+          image: ghcr.io/rajmcaitm/welcome/welcome:${GITHUB_SHA}
           ports:
             - containerPort: 8080
           envFrom:
