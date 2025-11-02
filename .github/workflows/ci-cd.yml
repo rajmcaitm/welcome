@@ -16,7 +16,7 @@ env:
   KUBECONFIG_PATH: C:\Users\RAJMC\.kube\config
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
-  HEALTH_URL: http://localhost:31010/welcome-app/welcome?name=Raj
+  HEALTH_URL: http://localhost:31010/welcome-app/welcome
 
 jobs:
   # --------------------------------------------------------

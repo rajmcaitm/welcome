@@ -38,9 +38,10 @@ spec:
 #            periodSeconds: 5
           livenessProbe:                      # ✅ Optional (ensures restart if unhealthy)
             httpGet:
-              path: /welcome-app/welcome?name=Raj
+              path: /welcome-app/welcome
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
+            failureThreshold: 3
       imagePullSecrets:
         - name: ghcr-secret                   # ✅ ensures Docker Desktop can pull from GHCR
