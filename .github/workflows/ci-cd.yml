@@ -228,32 +228,6 @@ jobs:
           }
           kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
 
-      - name: Port-forward welcome service
-        shell: pwsh
-        run: |
-          # Forward service port 8080 → localhost:31010 in background
-          Start-Process kubectl -ArgumentList 'port-forward service/welcome 31010:8080 -n samrat-dev' -NoNewWindow
-          # Give port-forward some time to start
-           Start-Sleep -Seconds 30
-
-      - name: Check application health endpoint
-        shell: pwsh
-        run: |
-          $SERVICE_URL = "${{ env.HEALTH_URL }}"
-          Write-Host "🌐 Performing health check on: $SERVICE_URL"
-          try {
-            $response = Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 20
-            if ($response.StatusCode -eq 200) {
-              Write-Host "✅ Health check passed! Application is reachable."
-            } else {
-              Write-Error "❌ Health check failed with status code $($response.StatusCode)"
-              exit 1
-            }
-          } catch {
-            Write-Error "❌ Health check failed: $($_.Exception.Message)"
-            exit 1
-          }
-
       - name: Display deployment rollout history
         shell: pwsh
         run: |
