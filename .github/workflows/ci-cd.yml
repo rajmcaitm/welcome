@@ -241,7 +241,7 @@ jobs:
           # Forward service port 8080 → localhost:31010 in background
           nohup kubectl port-forward service/welcome 31010:8080 -n samrat-dev > portforward.log 2>&1 &
           # Give port-forward some time to start
-           sleep 5    
+           sleep 30    
 
       - name: Check application health endpoint
         shell: pwsh
