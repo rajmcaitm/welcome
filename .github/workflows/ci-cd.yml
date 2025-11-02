@@ -235,6 +235,14 @@ jobs:
           kubectl wait --for=condition=ready pod -l app=${{ env.APP_NAME }} -n ${{ env.NAMESPACE }} --timeout=180s
           Write-Host "✅ All pods are Ready."
 
+      - name: Port-forward welcome service
+        shell: bash
+        run: |
+          # Forward service port 8080 → localhost:31010 in background
+          nohup kubectl port-forward service/welcome 31010:8080 -n samrat-dev > portforward.log 2>&1 &
+          # Give port-forward some time to start
+           sleep 5    
+
       - name: Check application health endpoint
         shell: pwsh
         run: |
