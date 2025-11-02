@@ -9,6 +9,6 @@ spec:
   type: LoadBalancer              # ✅ works fine with Docker Desktop
   ports:
     - name: http
-      port: 80                    # External port (mapped by Docker Desktop)
+      port: 8080                    # External port (mapped by Docker Desktop)
       targetPort: 8080            # Pod container port
       nodePort: 31010             # ✅ Optional: fixes endpoint to known port for testing
