@@ -38,7 +38,7 @@ spec:
 #            periodSeconds: 5
           livenessProbe:                      # ✅ Optional (ensures restart if unhealthy)
             httpGet:
-              path: /welcome-app/welcome
+              path: /welcome-app/welcome?name=Samrat
               port: 8080
             initialDelaySeconds: 30
             timeoutSeconds: 10
