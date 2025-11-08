@@ -33,7 +33,8 @@ spec:
           livenessProbe: # ✅ Ensures container restarts if unhealthy
             exec:
               command:
-                - /bin/bash
+                - /bin/sh
+                - -c
                 - /opt/application/script/triumph-monitor_pods.sh
             initialDelaySeconds: 30
             timeoutSeconds: 10
