@@ -47,6 +47,6 @@ spec:
             volumes:
               - name: monitor-script
                 configMap:
-                 name: monitor-script-cm
+                 name: monitor-script
       imagePullSecrets:
         - name: ghcr-secret                   # ✅ ensures Docker Desktop can pull from GHCR
