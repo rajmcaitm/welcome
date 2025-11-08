@@ -35,7 +35,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - /opt/application/script/triumph-monitor_pods.sh
+                - /opt/application/script/monitor_pods.sh
             initialDelaySeconds: 30
             timeoutSeconds: 10
             periodSeconds: 10
