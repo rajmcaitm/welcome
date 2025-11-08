@@ -30,16 +30,11 @@ spec:
             limits:
               cpu: "500m"
               memory: "1Gi"
-#          readinessProbe:                     # ✅ Optional but strongly recommended
-#            httpGet:
-#              path: /mybank-app/welcome?name=Raj
-#              port: 8080
-#            initialDelaySeconds: 10
-#            periodSeconds: 5
-          livenessProbe:                      # ✅ Optional (ensures restart if unhealthy)
-            httpGet:
-              path: /welcome-app/welcome
-              port: 8080
+          livenessProbe: # ✅ Ensures container restarts if unhealthy
+            exec:
+              command:
+                - /bin/bash
+                - /opt/application/script/triumph-monitor_pods.sh
             initialDelaySeconds: 30
             timeoutSeconds: 10
             periodSeconds: 10
