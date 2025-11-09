@@ -41,12 +41,12 @@ spec:
             periodSeconds: 10
             failureThreshold: 1
           volumeMounts:
-              - name: monitor-script
-                mountPath: /opt/application/script/monitor_pods.sh
-                subPath: monitor_pods.sh
+            - name: monitor-script
+              mountPath: /opt/application/script/monitor_pods.sh
+              subPath: monitor_pods.sh
       volumes:
-              - name: monitor-script
-                configMap:
-                 name: monitor-script
+          - name: monitor-script
+            configMap:
+             name: monitor-script
       imagePullSecrets:
         - name: ghcr-secret                   # ✅ ensures Docker Desktop can pull from GHCR
