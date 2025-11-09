@@ -42,8 +42,8 @@ spec:
             failureThreshold: 1
           volumeMounts:
             - name: monitor-script
-              mountPath: /opt/application/script/monitor_pods.sh
-              subPath: monitor_pods.sh
+              mountPath: /opt/application/script/monitor_pod.sh
+              subPath: monitor_pod.sh
       volumes:
           - name: monitor-script
             configMap:
