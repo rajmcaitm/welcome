@@ -3,16 +3,20 @@ name: Triumph CI/CD Pipeline
 on:
   push:
     branches:
-      - '**'   # triggers on all branches
+      - 'feature/**'   # triggers on all branches
 permissions:
   contents: read
   packages: write
 
 env:
   APP_NAME: welcome
-  IMAGE_NAME: welcome:3c81351d6a38fae4b66fbec4bc9d7bac78a8caf2
+  IMAGE_TAG: ${{ github.sha }}
+  IMAGE_NAME: welcome:${{ github.sha }}
+  NAMESPACE: samrat-dev
+  KUBECONFIG_PATH: C:\Users\RAJMC\.kube\config
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
+  HEALTH_URL: http://localhost:31010/welcome-app/welcome
 
 jobs:
   # --------------------------------------------------------
@@ -122,9 +126,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Docker Image
-        run: docker build -t $DOCKER_REGISTRY:$GITHUB_SHA .
+        run: |
+          echo "Building image: $DOCKER_REGISTRY/$IMAGE_NAME"
+          docker build -t $DOCKER_REGISTRY/$IMAGE_NAME .
       - name: Push Docker Image
-        run: docker push $DOCKER_REGISTRY:$GITHUB_SHA
+        run: |
+         echo "Pushing image: $DOCKER_REGISTRY/$IMAGE_NAME"
+         docker push $DOCKER_REGISTRY/$IMAGE_NAME
 
   # --------------------------------------------------------
   # 4️⃣ VERIFY-DOCKER
@@ -137,7 +145,7 @@ jobs:
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.DOCKER_REGISTRY }}:${{ github.sha }}
+          image-ref: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
           format: table
           exit-code: '0'
           ignore-unfixed: true
@@ -153,55 +161,75 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set KUBECONFIG
+      - name: Set up kubectl context
         shell: pwsh
         run: |
-          $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
-          kubectl config view        
+            $env:KUBECONFIG = "${{ env.KUBECONFIG_PATH }}"
+            kubectl config use-context docker-desktop
+            kubectl cluster-info
+            kubectl get nodes
 
-      - name: Verify cluster access
+      - name: Create namespace if not exists
         shell: pwsh
         run: |
-          echo "Runner test successful!"
-          hostname
-          whoami
-          echo "Using kubeconfig"
-          kubectl get nodes
+          kubectl get namespace samrat-dev -o name || kubectl create namespace samrat-dev
 
-      - name: Deploy app to namespace
+      - name: Update image tag dynamically
+        shell: pwsh
         run: |
-          kubectl get namespace samrat-dev || kubectl create namespace samrat-dev
-          kubectl apply -f k8s/ -n samrat-dev
-          kubectl rollout status deployment/welcome -n samrat-dev
-          kubectl get all -n samrat-dev | grep welcome
+            $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}"
+            Write-Host "Updating deployment image to $image"
+            kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
+
+      - name: Apply manifests
+        shell: pwsh
+        run: |
+          $namespace = "${{ env.NAMESPACE }}"
+          $imageTag = "${{ github.sha }}"
+          $appName = "${{ env.APP_NAME }}"
+
+          # Apply configmap and service first
+          kubectl apply -f k8s/configmap.yaml -n $namespace
+          kubectl apply -f k8s/service.yaml -n $namespace
+
+          # Replace ${GITHUB_SHA} in deployment.yaml and apply dynamically
+          (Get-Content k8s/deployment.yaml) -replace '\${GITHUB_SHA}', $imageTag | kubectl apply -f - -n $namespace
+
+          # Wait for rollout and show status
+          kubectl rollout restart deployment/$appName -n $namespace
+          kubectl rollout status deployment/welcome -n $namespace --timeout=120s
+          kubectl get pods -n $namespace | Select-String $appName
 
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY
   # --------------------------------------------------------
   validate-non-prod-deploy:
     name: validate-non-prod-deploy
-    runs-on: self-hosted   # your Windows runner
+    runs-on: self-hosted
     needs: kob-deploy-non-prod
+
     steps:
-      - name: Set KUBECONFIG
+      - name: Set up KUBECONFIG
         shell: pwsh
         run: |
-          $env:KUBECONFIG = "C:\Users\RAJMC\.kube\config"
+          $env:KUBECONFIG = "${{ env.KUBECONFIG_PATH }}"
+          kubectl config use-context docker-desktop
+          kubectl cluster-info
+          kubectl get nodes
 
-      - name: Validate Pods
+      - name: Verify ${{ env.APP_NAME }} pods
         shell: pwsh
         run: |
-          echo "Listing pods in samrat-dev namespace"
-          kubectl get pods -n samrat-dev | grep welcome
-
-      - name: Check Health Endpoint
-        shell: pwsh
-        run: |
-          $SERVICE_URL = "http://localhost:31007/mybank/welcome?name=Raj"
-          Write-Host "Checking $SERVICE_URL"
-          try {
-            Invoke-WebRequest -Uri $SERVICE_URL -UseBasicParsing -TimeoutSec 10
-          } catch {
-            Write-Error "Health check failed"
+          Write-Host "🔍 Checking ${{ env.APP_NAME }} pods in namespace '${{ env.NAMESPACE }}'..."
+          $pods = kubectl get pods -n ${{ env.NAMESPACE }} --no-headers | Select-String "${{ env.APP_NAME }}"
+          if (-not $pods) {
+            Write-Error "❌ No pods found for ${{ env.APP_NAME }}!"
             exit 1
           }
+          kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
+
+      - name: Display deployment rollout history
+        shell: pwsh
+        run: |
+          Write-Host "📜 Deployment rollout history for ${{ env.APP_NAME }}:"
+          kubectl rollout history deployment/${{ env.APP_NAME }} -n ${{ env.NAMESPACE }}
