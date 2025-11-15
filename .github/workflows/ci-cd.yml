@@ -5,6 +5,9 @@ on:
     branches:
       - master
       - 'feature/**'   # triggers on all branches
+  pull_request:
+    branches:
+      - master
 permissions:
   contents: read
   packages: write
