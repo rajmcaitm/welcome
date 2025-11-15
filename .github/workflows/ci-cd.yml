@@ -3,6 +3,7 @@ name: Triumph CI/CD Pipeline
 on:
   push:
     branches:
+      - master
       - 'feature/**'   # triggers on all branches
 permissions:
   contents: read
