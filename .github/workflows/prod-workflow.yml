@@ -176,7 +176,7 @@ jobs:
       - name: Create namespace if not exists
         shell: pwsh
         run: |
-          kubectl get namespace samrat-dev -o name || kubectl create namespace samrat-dev
+          kubectl get namespace ${{ env.NAMESPACE }} -o name || kubectl create namespace ${{ env.NAMESPACE }}
 
       - name: Update image tag dynamically
         shell: pwsh
