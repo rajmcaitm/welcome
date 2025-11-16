@@ -1,4 +1,4 @@
-name: Triumph CI/CD Pipeline
+name: dev-workflow pipeline
 
 on:
   push:
