@@ -13,7 +13,7 @@ public class Producer {
     public static void pushingMessageToRMQ() throws Exception {
         long count = 1;
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setUri("amqps://psyzlqct:4qL1oOK9zItvFmpqShj49PbM6fYFf5qg@shrimp.rmq.cloudamqp.com/psyzlqct");
+        factory.setUri("amqps://psyzlqct:4qL1oOK9zItvFmpqShj49PbM6fYFf5qgS@shrimp.rmq.cloudamqp.com/psyzlqct");
 
         try (Connection connection = factory.newConnection();
              Channel channel = connection.createChannel()) {
