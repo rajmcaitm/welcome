@@ -1,13 +1,13 @@
-name: Triumph CI/CD Pipeline
+name: int-workflow pipeline
 
 on:
-  push:
-    branches:
-      - master
-      - 'feature/**'   # triggers on all branches
-  pull_request:
-    branches:
-      - master
+#  push:
+#    branches:
+#      - master
+#      - 'feature/**'   # triggers on all branches
+#  pull_request:
+#    branches:
+#      - master
 permissions:
   contents: read
   packages: write
@@ -16,7 +16,7 @@ env:
   APP_NAME: welcome
   IMAGE_TAG: ${{ github.sha }}
   IMAGE_NAME: welcome:${{ github.sha }}
-  NAMESPACE: samrat-dev
+  NAMESPACE: samrat-int
   KUBECONFIG_PATH: C:\Users\RAJMC\.kube\config
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
@@ -135,8 +135,8 @@ jobs:
           docker build -t $DOCKER_REGISTRY/$IMAGE_NAME .
       - name: Push Docker Image
         run: |
-         echo "Pushing image: $DOCKER_REGISTRY/$IMAGE_NAME"
-         docker push $DOCKER_REGISTRY/$IMAGE_NAME
+          echo "Pushing image: $DOCKER_REGISTRY/$IMAGE_NAME"
+          docker push $DOCKER_REGISTRY/$IMAGE_NAME
 
   # --------------------------------------------------------
   # 4️⃣ VERIFY-DOCKER
@@ -168,22 +168,22 @@ jobs:
       - name: Set up kubectl context
         shell: pwsh
         run: |
-            $env:KUBECONFIG = "${{ env.KUBECONFIG_PATH }}"
-            kubectl config use-context docker-desktop
-            kubectl cluster-info
-            kubectl get nodes
+          $env:KUBECONFIG = "${{ env.KUBECONFIG_PATH }}"
+          kubectl config use-context docker-desktop
+          kubectl cluster-info
+          kubectl get nodes
 
       - name: Create namespace if not exists
         shell: pwsh
         run: |
-          kubectl get namespace samrat-dev -o name || kubectl create namespace samrat-dev
+          kubectl get namespace ${{ env.NAMESPACE }} -o name || kubectl create namespace ${{ env.NAMESPACE }}
 
       - name: Update image tag dynamically
         shell: pwsh
         run: |
-            $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}"
-            Write-Host "Updating deployment image to $image"
-            kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
+          $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}"
+          Write-Host "Updating deployment image to $image"
+          kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
 
       - name: Apply manifests
         shell: pwsh
