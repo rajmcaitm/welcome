@@ -12,31 +12,31 @@ on:
 #      - master
 #      - develop
 #      - 'release/**'
-  workflow_dispatch:
-  inputs:
-    branch:
-      description: 'Branch or tag to deploy'
-      required: true
-      type: choice                     # ← this creates a dropdown!
-      options:
-        - master
-        - develop
-        - release/v1.0.0
-        - feature/**
-    APP_VERSION:
-      description: 'Application version (e.g. 1.2.3)'
-      required: true
-      type: string
-
-    ENV:
-      description: 'Target environment'
-      required: true
-      type: choice
-      options:
-        - dev
-        - int
-        - prod
-      default: dev
+#  workflow_dispatch:
+#  inputs:
+#    branch:
+#      description: 'Branch or tag to deploy'
+#      required: true
+#      type: choice                     # ← this creates a dropdown!
+#      options:
+#        - master
+#        - develop
+#        - release/v1.0.0
+#        - feature/**
+#    APP_VERSION:
+#      description: 'Application version (e.g. 1.2.3)'
+#      required: true
+#      type: string
+#
+#    ENV:
+#      description: 'Target environment'
+#      required: true
+#      type: choice
+#      options:
+#        - dev
+#        - int
+#        - prod
+#      default: dev
 permissions:
   contents: read
   packages: write
