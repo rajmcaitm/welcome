@@ -1,4 +1,4 @@
-name: dev-workflow pipeline
+name: common-workflow pipeline
 
 on:
 #  push:
