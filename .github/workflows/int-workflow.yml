@@ -1,13 +1,13 @@
 name: int-workflow pipeline
 
 on:
-  push:
-    branches:
-      - master
-      - 'feature/**'   # triggers on all branches
-  pull_request:
-    branches:
-      - master
+#  push:
+#    branches:
+#      - master
+#      - 'feature/**'   # triggers on all branches
+#  pull_request:
+#    branches:
+#      - master
 permissions:
   contents: read
   packages: write
