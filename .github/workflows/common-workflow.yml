@@ -1,5 +1,4 @@
 name: common-workflow pipeline
-
 on:
 #  push:
 #    branches:
