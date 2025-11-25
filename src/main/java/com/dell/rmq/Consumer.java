@@ -13,7 +13,7 @@ public class Consumer {
 
     public static void consumingMessagefromRMQ() throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setUri("amqps://psyzlqct:4qL1oOK9zItvFmpqShj49PbM6fYFf5qg@shrimp.rmq.cloudamqp.com/psyzlqct");
+        factory.setUri("amqps://psyzlqct:4qL1oOK9zItvFmpqShj49PbM6fYFf5qgS@shrimp.rmq.cloudamqp.com/psyzlqct");
 
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
