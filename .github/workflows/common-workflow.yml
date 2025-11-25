@@ -1,22 +1,52 @@
-name: int-workflow pipeline
+name: dev-workflow pipeline
 
 on:
 #  push:
 #    branches:
 #      - master
-#      - 'feature/**'   # triggers on all branches
+#      - develop
+#      - 'release/**'
+#      - 'feature/**'   # triggers on all feature branches
 #  pull_request:
 #    branches:
 #      - master
+#      - develop
+#      - 'release/**'
+  workflow_dispatch:
+  inputs:
+    branch:
+      description: 'Branch or tag to deploy'
+      required: true
+      type: choice                     # ← this creates a dropdown!
+      options:
+        - master
+        - develop
+        - release/v1.0.0
+        - feature/**
+    APP_VERSION:
+      description: 'Application version (e.g. 1.2.3)'
+      required: true
+      type: string
+
+    ENV:
+      description: 'Target environment'
+      required: true
+      type: choice
+      options:
+        - dev
+        - int
+        - prod
+      default: dev
 permissions:
   contents: read
   packages: write
 
 env:
   APP_NAME: welcome
+  #APP_ENV: ${{ vars.APP_ENV }}
   IMAGE_TAG: ${{ github.sha }}
   IMAGE_NAME: welcome:${{ github.sha }}
-  NAMESPACE: samrat-int
+  NAMESPACE: samrat-dev
   KUBECONFIG_PATH: C:\Users\RAJMC\.kube\config
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
@@ -135,8 +165,8 @@ jobs:
           docker build -t $DOCKER_REGISTRY/$IMAGE_NAME .
       - name: Push Docker Image
         run: |
-          echo "Pushing image: $DOCKER_REGISTRY/$IMAGE_NAME"
-          docker push $DOCKER_REGISTRY/$IMAGE_NAME
+         echo "Pushing image: $DOCKER_REGISTRY/$IMAGE_NAME"
+         docker push $DOCKER_REGISTRY/$IMAGE_NAME
 
   # --------------------------------------------------------
   # 4️⃣ VERIFY-DOCKER
@@ -168,10 +198,10 @@ jobs:
       - name: Set up kubectl context
         shell: pwsh
         run: |
-          $env:KUBECONFIG = "${{ env.KUBECONFIG_PATH }}"
-          kubectl config use-context docker-desktop
-          kubectl cluster-info
-          kubectl get nodes
+            $env:KUBECONFIG = "${{ env.KUBECONFIG_PATH }}"
+            kubectl config use-context docker-desktop
+            kubectl cluster-info
+            kubectl get nodes
 
       - name: Create namespace if not exists
         shell: pwsh
@@ -181,9 +211,9 @@ jobs:
       - name: Update image tag dynamically
         shell: pwsh
         run: |
-          $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}"
-          Write-Host "Updating deployment image to $image"
-          kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
+            $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}"
+            Write-Host "Updating deployment image to $image"
+            kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
 
       - name: Apply manifests
         shell: pwsh
