@@ -214,8 +214,8 @@ jobs:
       - name: Update image tag dynamically
         shell: pwsh
         run: |
-            $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ env.IMAGE_TAG }}"
-            Write-Host "Updating deployment image to $image"
+            $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ inputs.APP_VERSION }}"
+            Write-Host "Updating deployment image to -> $image"
             kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
 
       - name: Apply manifests
