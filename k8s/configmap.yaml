@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: welcome-config
-  namespace: samrat-dev
+  #namespace: samrat-dev
 data:
   APP_MESSAGE: "Welcome to MyBank!"
 #data:
