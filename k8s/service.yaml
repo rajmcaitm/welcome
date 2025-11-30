@@ -11,4 +11,4 @@ spec:
     - name: http
       port: 8080                    # External port (mapped by Docker Desktop)
       targetPort: 8080            # Pod container port
-      nodePort: 31010             # ✅ Optional: fixes endpoint to known port for testing
+      #nodePort: 31010             # ✅ Optional: fixes endpoint to known port for testing
