@@ -12,7 +12,7 @@ on:
 #      - develop
 #      - 'release/**'
   workflow_dispatch:
-  inputs:
+   inputs:
     branch:
       description: 'Branch or tag to deploy'
       required: true
