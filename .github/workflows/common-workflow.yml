@@ -42,10 +42,14 @@ permissions:
 
 env:
   APP_NAME: welcome
-  #APP_ENV: ${{ vars.APP_ENV }}
   IMAGE_TAG: ${{ github.sha }}
   IMAGE_NAME: welcome:${{ github.sha }}
-  NAMESPACE: samrat-dev
+  #NAMESPACE: samrat-dev
+  NAMESPACE: ${{
+    inputs.ENV == 'prod' && 'samrat-prd' ||
+    inputs.ENV == 'int' && 'samrat-int' ||
+    'samrat-dev'
+    }}
   KUBECONFIG_PATH: C:\Users\RAJMC\.kube\config
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
@@ -186,7 +190,7 @@ jobs:
   # --------------------------------------------------------
   # 5️⃣ DEPLOY
   # --------------------------------------------------------
-  kob-deploy-non-prod:
+  kob-deploy:
     name: deploy-to-local-kubernetes
     runs-on: self-hosted
     needs: container-scan
@@ -220,6 +224,13 @@ jobs:
           $namespace = "${{ env.NAMESPACE }}"
           $imageTag = "${{ github.sha }}"
           $appName = "${{ env.APP_NAME }}"
+          
+          echo "Deploying app name : $appName"
+          echo "Deploying APP_VERSION: ${{ inputs.APP_VERSION }}"
+          echo "Target Environment : ${{ inputs.ENV }}"
+          echo "Kubernetes Namespace: $namespace"
+          echo "Image: ${{ env.IMAGE_NAME }}"
+          echo "imageTag : $imageTag"
 
           # Apply configmap and service first
           kubectl apply -f k8s/configmap.yaml -n $namespace
@@ -236,10 +247,10 @@ jobs:
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY
   # --------------------------------------------------------
-  validate-non-prod-deploy:
-    name: validate-non-prod-deploy
+  validate-deploy:
+    name: validate-deploy
     runs-on: self-hosted
-    needs: kob-deploy-non-prod
+    needs: kob-deploy
 
     steps:
       - name: Set up KUBECONFIG
