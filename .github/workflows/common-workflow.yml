@@ -215,6 +215,9 @@ jobs:
         shell: pwsh
         run: |
             $image = "${{ env.DOCKER_REGISTRY }}/${{ env.APP_NAME }}:${{ inputs.APP_VERSION }}"
+            $ns = "${{ env.NAMESPACE }}"
+            kubectl create ns $ns --dry-run=client -o yaml | kubectl apply -f -
+            kubectl apply -f k8s/ -n $ns
             Write-Host "Updating deployment image to -> $image"
             kubectl set image deployment/${{ env.APP_NAME }} ${{ env.APP_NAME }}=$image -n ${{ env.NAMESPACE }} --record
 
