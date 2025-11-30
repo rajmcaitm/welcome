@@ -13,17 +13,17 @@ on:
 #      - 'release/**'
   workflow_dispatch:
    inputs:
-    branch:
-      description: 'Branch or tag to deploy'
-      required: true
-      type: choice                     # ← this creates a dropdown!
-      options:
-        - master
-        - develop
-        - release/v1.0.0
-        - feature/**
+#    branch:
+#      description: 'Branch or tag to deploy'
+#      required: true
+#      type: choice                     # ← this creates a dropdown!
+#      options:
+#        - master
+#        - develop
+#        - release/v1.0.0
+#        - feature/**
     APP_VERSION:
-      description: 'Application version (e.g. 1.2.3)'
+      description: 'Application version (e.g. 1.0.0)'
       required: true
       type: string
 
