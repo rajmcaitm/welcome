@@ -3,6 +3,7 @@ package com.dell.programs;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 public class ArrayManager {
     private int[] arr = new int[100];
@@ -37,5 +38,14 @@ public class ArrayManager {
         List list = new ArrayList<Integer>();
         list.add(no);
         System.err.println(list);
+    }
+
+    public void start() throws InterruptedException {
+        while (true) {
+            int no = new Random().nextInt(100);
+            System.err.println(no);
+            addNumber(no);
+            Thread.sleep(3000);
+        }
     }
 }

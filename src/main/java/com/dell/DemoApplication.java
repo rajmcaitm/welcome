@@ -12,14 +12,8 @@ import java.util.Random;
 public class DemoApplication {
     public static void main(String[] args) throws Exception {
         SpringApplication.run(DemoApplication.class, args);
-        //Consumer.consumingMessagefromRMQ();
-        //Producer.pushingMessageToRMQ();
-        ArrayManager manager = new ArrayManager();
-        while (true) {
-            int no = new Random().nextInt(100);
-            System.err.println(no);
-            manager.addNumber(no);
-            Thread.sleep(3000);
-        }
+        //new ArrayManager().start();
+        Consumer.consumingMessagefromRMQ();
+        Producer.pushingMessageToRMQ();
     }
 }
