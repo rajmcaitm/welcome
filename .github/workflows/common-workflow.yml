@@ -44,7 +44,6 @@ env:
   APP_NAME: welcome
   IMAGE_TAG: ${{ inputs.APP_VERSION }}
   IMAGE_NAME: welcome:${{ inputs.APP_VERSION }}
-  #NAMESPACE: samrat-dev
   NAMESPACE: ${{
     inputs.ENV == 'prod' && 'samrat-prd' ||
     inputs.ENV == 'int' && 'samrat-int' ||
@@ -231,25 +230,14 @@ jobs:
           $envName = "${{ inputs.ENV }}"
           $fullImage = "${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
           
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host " DEPLOYMENT INITIATED" -ForegroundColor Cyan
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host ""
           Write-Host " Application Information:" -ForegroundColor Yellow
           Write-Host "   • App Name: $appName" -ForegroundColor White
-          Write-Host "   • Version: $imageTag" -ForegroundColor White
+          Write-Host "   • App Version: $imageTag" -ForegroundColor White
           Write-Host "   • Environment: $envName" -ForegroundColor White
           Write-Host "   • Namespace: $namespace" -ForegroundColor White
-          Write-Host ""
-          Write-Host " Docker Image:" -ForegroundColor Yellow
           Write-Host "   • Registry: ${{ env.DOCKER_REGISTRY }}" -ForegroundColor White
           Write-Host "   • Image: $fullImage" -ForegroundColor White
-          Write-Host ""
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host " APPLYING KUBERNETES MANIFESTS" -ForegroundColor Cyan
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host ""
-
+          
           # Delete existing resources to ensure fresh deployment
           Write-Host " Cleaning up existing resources..." -ForegroundColor Yellow
           kubectl delete configmap welcome-config -n $namespace --ignore-not-found=true
@@ -261,7 +249,6 @@ jobs:
           # Create fresh configmap and service
           Write-Host " Creating ConfigMap..." -ForegroundColor Green
           kubectl apply -f k8s/configmap.yaml -n $namespace
-          Write-Host ""
           
           Write-Host " Creating Service..." -ForegroundColor Green
           kubectl apply -f k8s/service.yaml -n $namespace
@@ -272,9 +259,7 @@ jobs:
           (Get-Content k8s/deployment.yaml) -replace '\${APP_VERSION}', $imageTag | kubectl apply -f - -n $namespace
           Write-Host ""
 
-          Write-Host "========================================" -ForegroundColor Cyan
           Write-Host " ROLLING OUT DEPLOYMENT" -ForegroundColor Cyan
-          Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
 
           # Wait for rollout and show status
@@ -282,9 +267,6 @@ jobs:
           kubectl rollout status deployment/welcome -n $namespace --timeout=120s
           Write-Host ""
           
-          Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host " DEPLOYMENT STATUS" -ForegroundColor Cyan
-          Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
           Write-Host " Running Pods:" -ForegroundColor Green
           kubectl get pods -n $namespace | Select-String $appName
@@ -314,7 +296,7 @@ jobs:
           Write-Host " Checking ${{ env.APP_NAME }} pods in namespace '${{ env.NAMESPACE }}'..."
           $pods = kubectl get pods -n ${{ env.NAMESPACE }} --no-headers | Select-String "${{ env.APP_NAME }}"
           if (-not $pods) {
-            Write-Error "❌ No pods found for ${{ env.APP_NAME }}!"
+            Write-Error " No pods found for ${{ env.APP_NAME }}!"
             exit 1
           }
           kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
