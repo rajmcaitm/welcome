@@ -13,7 +13,7 @@ public class DemoApplication {
     public static void main(String[] args) throws Exception {
         SpringApplication.run(DemoApplication.class, args);
         //new ArrayManager().start();
-       // Consumer.consumingMessagefromRMQ();
-       // Producer.pushingMessageToRMQ();
+        Consumer.consumingMessagefromRMQ();
+        Producer.pushingMessageToRMQ();
     }
 }
