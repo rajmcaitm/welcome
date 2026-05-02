@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: welcome
-  namespace: ${{ inputs.NAMESPACE }}
   labels:
     app: welcome
   annotations:
