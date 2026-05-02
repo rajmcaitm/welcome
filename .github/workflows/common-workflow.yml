@@ -232,64 +232,64 @@ jobs:
           $fullImage = "${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
           
           Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "🚀 DEPLOYMENT INITIATED" -ForegroundColor Cyan
+          Write-Host " DEPLOYMENT INITIATED" -ForegroundColor Cyan
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
-          Write-Host "📦 Application Information:" -ForegroundColor Yellow
+          Write-Host " Application Information:" -ForegroundColor Yellow
           Write-Host "   • App Name: $appName" -ForegroundColor White
           Write-Host "   • Version: $imageTag" -ForegroundColor White
           Write-Host "   • Environment: $envName" -ForegroundColor White
           Write-Host "   • Namespace: $namespace" -ForegroundColor White
           Write-Host ""
-          Write-Host "🐳 Docker Image:" -ForegroundColor Yellow
+          Write-Host " Docker Image:" -ForegroundColor Yellow
           Write-Host "   • Registry: ${{ env.DOCKER_REGISTRY }}" -ForegroundColor White
           Write-Host "   • Image: $fullImage" -ForegroundColor White
           Write-Host ""
           Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "📋 APPLYING KUBERNETES MANIFESTS" -ForegroundColor Cyan
+          Write-Host " APPLYING KUBERNETES MANIFESTS" -ForegroundColor Cyan
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
 
           # Delete existing resources to ensure fresh deployment
-          Write-Host "🗑️  Cleaning up existing resources..." -ForegroundColor Yellow
+          Write-Host " Cleaning up existing resources..." -ForegroundColor Yellow
           kubectl delete configmap welcome-config -n $namespace --ignore-not-found=true
           kubectl delete service welcome -n $namespace --ignore-not-found=true
           kubectl delete deployment welcome -n $namespace --ignore-not-found=true
-          Write-Host "✅ Cleanup completed" -ForegroundColor Green
+          Write-Host " Cleanup completed" -ForegroundColor Green
           Write-Host ""
 
           # Create fresh configmap and service
-          Write-Host "🔧 Creating ConfigMap..." -ForegroundColor Green
+          Write-Host " Creating ConfigMap..." -ForegroundColor Green
           kubectl apply -f k8s/configmap.yaml -n $namespace
           Write-Host ""
           
-          Write-Host "🔧 Creating Service..." -ForegroundColor Green
+          Write-Host " Creating Service..." -ForegroundColor Green
           kubectl apply -f k8s/service.yaml -n $namespace
           Write-Host ""
 
           # Replace ${APP_VERSION} in deployment.yaml and apply dynamically
-          Write-Host "🔧 Creating Deployment with image tag: $imageTag" -ForegroundColor Green
+          Write-Host " Creating Deployment with image tag: $imageTag" -ForegroundColor Green
           (Get-Content k8s/deployment.yaml) -replace '\${APP_VERSION}', $imageTag | kubectl apply -f - -n $namespace
           Write-Host ""
 
           Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "🔄 ROLLING OUT DEPLOYMENT" -ForegroundColor Cyan
+          Write-Host " ROLLING OUT DEPLOYMENT" -ForegroundColor Cyan
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
 
           # Wait for rollout and show status
-          Write-Host "⏳ Waiting for deployment to be ready..." -ForegroundColor Yellow
+          Write-Host " Waiting for deployment to be ready..." -ForegroundColor Yellow
           kubectl rollout status deployment/welcome -n $namespace --timeout=120s
           Write-Host ""
           
           Write-Host "========================================" -ForegroundColor Cyan
-          Write-Host "✅ DEPLOYMENT STATUS" -ForegroundColor Cyan
+          Write-Host " DEPLOYMENT STATUS" -ForegroundColor Cyan
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
-          Write-Host "📊 Running Pods:" -ForegroundColor Green
+          Write-Host " Running Pods:" -ForegroundColor Green
           kubectl get pods -n $namespace | Select-String $appName
           Write-Host ""
-          Write-Host "🎉 Deployment completed successfully!" -ForegroundColor Green
+          Write-Host " Deployment completed successfully!" -ForegroundColor Green
 
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY
@@ -311,7 +311,7 @@ jobs:
       - name: Verify ${{ env.APP_NAME }} pods
         shell: pwsh
         run: |
-          Write-Host "🔍 Checking ${{ env.APP_NAME }} pods in namespace '${{ env.NAMESPACE }}'..."
+          Write-Host " Checking ${{ env.APP_NAME }} pods in namespace '${{ env.NAMESPACE }}'..."
           $pods = kubectl get pods -n ${{ env.NAMESPACE }} --no-headers | Select-String "${{ env.APP_NAME }}"
           if (-not $pods) {
             Write-Error "❌ No pods found for ${{ env.APP_NAME }}!"
@@ -322,5 +322,5 @@ jobs:
       - name: Display deployment rollout history
         shell: pwsh
         run: |
-          Write-Host "📜 Deployment rollout history for ${{ env.APP_NAME }}:"
+          Write-Host " Deployment rollout history for ${{ env.APP_NAME }}:"
           kubectl rollout history deployment/${{ env.APP_NAME }} -n ${{ env.NAMESPACE }}
