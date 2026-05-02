@@ -5,6 +5,10 @@ metadata:
   #namespace: samrat-dev
   labels:
     app: welcome
+    version: "${APP_VERSION}"
+  annotations:
+    description: "Welcome application deployment"
+    maintained-by: "devops-team"
 spec:
   replicas: 1
   selector:
@@ -15,14 +19,33 @@ spec:
       labels:
         app: welcome
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
         - name: welcome
           image: ghcr.io/rajmcaitm/welcome/welcome:${APP_VERSION}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              protocol: TCP
           envFrom:
             - configMapRef:
                 name: welcome-config
+#          livenessProbe:
+#            httpGet:
+#              path: /actuator/health
+#              port: 8080
+#            initialDelaySeconds: 60
+#            periodSeconds: 10
+#            timeoutSeconds: 5
+#            failureThreshold: 3
+#          readinessProbe:
+#            httpGet:
+#              path: /actuator/health
+#              port: 8080
+#            initialDelaySeconds: 30
+#            periodSeconds: 5
+#            timeoutSeconds: 3
+#            failureThreshold: 3
           resources:
             requests:
               cpu: "200m"
@@ -30,23 +53,5 @@ spec:
             limits:
               cpu: "500m"
               memory: "1Gi"
-#          livenessProbe: # ✅ Ensures container restarts if unhealthy
-#            exec:
-#              command:
-#                - /bin/sh
-#                - -c
-#                - /opt/application/script/monitor_pod.sh
-#            initialDelaySeconds: 30
-#            timeoutSeconds: 10
-#            periodSeconds: 20
-#            failureThreshold: 1
-#          volumeMounts:
-#            - name: monitor-script
-#              mountPath: /opt/application/script/monitor_pod.sh
-#              subPath: monitor_pod.sh
-#      volumes:
-#          - name: monitor-script
-#            configMap:
-#             name: monitor-script
       imagePullSecrets:
-        - name: ghcr-secret                   # ✅ ensures Docker Desktop can pull from GHCR
+        - name: ghcr-secret
