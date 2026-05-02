@@ -20,10 +20,10 @@ on:
 #      options:
 #        - master
 #        - develop
-#        - release/v1.0.0
+#        - release/v1.0.5
 #        - feature/**
     APP_VERSION:
-      description: 'Application version (e.g. 1.0.0)'
+      description: 'Application version (e.g. 1.0.5)'
       required: true
       type: string
 
@@ -42,9 +42,8 @@ permissions:
 
 env:
   APP_NAME: welcome
-  IMAGE_TAG: ${{ github.sha }}
-  IMAGE_NAME: welcome:${{ github.sha }}
-  #NAMESPACE: samrat-dev
+  IMAGE_TAG: ${{ inputs.APP_VERSION }}
+  IMAGE_NAME: welcome:${{ inputs.APP_VERSION }}
   NAMESPACE: ${{
     inputs.ENV == 'prod' && 'samrat-prd' ||
     inputs.ENV == 'int' && 'samrat-int' ||
@@ -54,6 +53,7 @@ env:
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
   HEALTH_URL: http://localhost:31010/welcome-app/welcome
+  APP_VERSION: ${{ inputs.APP_VERSION }}
 
 jobs:
   # --------------------------------------------------------
@@ -225,27 +225,53 @@ jobs:
         shell: pwsh
         run: |
           $namespace = "${{ env.NAMESPACE }}"
-          $imageTag = "${{ github.sha }}"
+          $imageTag = "${{ inputs.APP_VERSION }}"
           $appName = "${{ env.APP_NAME }}"
+          $envName = "${{ inputs.ENV }}"
+          $fullImage = "${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
           
-          echo "Deploying app name : $appName"
-          echo "Deploying APP_VERSION: ${{ inputs.APP_VERSION }}"
-          echo "Target Environment : ${{ inputs.ENV }}"
-          echo "Kubernetes Namespace: $namespace"
-          echo "Image: ${{ env.IMAGE_NAME }}"
-          echo "imageTag : $imageTag"
+          Write-Host " Application Information:" -ForegroundColor Yellow
+          Write-Host "   • App Name: $appName" -ForegroundColor White
+          Write-Host "   • App Version: $imageTag" -ForegroundColor White
+          Write-Host "   • Environment: $envName" -ForegroundColor White
+          Write-Host "   • Namespace: $namespace" -ForegroundColor White
+          Write-Host "   • Registry: ${{ env.DOCKER_REGISTRY }}" -ForegroundColor White
+          Write-Host "   • Image: $fullImage" -ForegroundColor White
+          
+          # Delete existing resources to ensure fresh deployment
+          Write-Host " Cleaning up existing resources..." -ForegroundColor Yellow
+          kubectl delete configmap welcome-config -n $namespace --ignore-not-found=true
+          kubectl delete service welcome -n $namespace --ignore-not-found=true
+          kubectl delete deployment welcome -n $namespace --ignore-not-found=true
+          Write-Host " Cleanup completed" -ForegroundColor Green
+          Write-Host ""
 
-          # Apply configmap and service first
+          # Create fresh configmap and service
+          Write-Host " Creating ConfigMap..." -ForegroundColor Green
           kubectl apply -f k8s/configmap.yaml -n $namespace
+          
+          Write-Host " Creating Service..." -ForegroundColor Green
           kubectl apply -f k8s/service.yaml -n $namespace
+          Write-Host ""
 
-          # Replace ${GITHUB_SHA} in deployment.yaml and apply dynamically
-          (Get-Content k8s/deployment.yaml) -replace '\${GITHUB_SHA}', $imageTag | kubectl apply -f - -n $namespace
+          # Replace ${APP_VERSION} in deployment.yaml and apply dynamically
+          Write-Host " Creating Deployment with image tag: $imageTag" -ForegroundColor Green
+          (Get-Content k8s/deployment.yaml) -replace '\${APP_VERSION}', $imageTag | kubectl apply -f - -n $namespace
+          Write-Host ""
+
+          Write-Host " ROLLING OUT DEPLOYMENT" -ForegroundColor Cyan
+          Write-Host ""
 
           # Wait for rollout and show status
-          kubectl rollout restart deployment/$appName -n $namespace
+          Write-Host " Waiting for deployment to be ready..." -ForegroundColor Yellow
           kubectl rollout status deployment/welcome -n $namespace --timeout=120s
+          Write-Host ""
+          
+          Write-Host ""
+          Write-Host " Running Pods:" -ForegroundColor Green
           kubectl get pods -n $namespace | Select-String $appName
+          Write-Host ""
+          Write-Host " Deployment completed successfully!" -ForegroundColor Green
 
   # --------------------------------------------------------
   # 6️⃣ VALIDATE DEPLOY
@@ -267,10 +293,10 @@ jobs:
       - name: Verify ${{ env.APP_NAME }} pods
         shell: pwsh
         run: |
-          Write-Host "🔍 Checking ${{ env.APP_NAME }} pods in namespace '${{ env.NAMESPACE }}'..."
+          Write-Host " Checking ${{ env.APP_NAME }} pods in namespace '${{ env.NAMESPACE }}'..."
           $pods = kubectl get pods -n ${{ env.NAMESPACE }} --no-headers | Select-String "${{ env.APP_NAME }}"
           if (-not $pods) {
-            Write-Error "❌ No pods found for ${{ env.APP_NAME }}!"
+            Write-Error " No pods found for ${{ env.APP_NAME }}!"
             exit 1
           }
           kubectl get pods -n ${{ env.NAMESPACE }} -o wide | Select-String "${{ env.APP_NAME }}"
@@ -278,5 +304,5 @@ jobs:
       - name: Display deployment rollout history
         shell: pwsh
         run: |
-          Write-Host "📜 Deployment rollout history for ${{ env.APP_NAME }}:"
+          Write-Host " Deployment rollout history for ${{ env.APP_NAME }}:"
           kubectl rollout history deployment/${{ env.APP_NAME }} -n ${{ env.NAMESPACE }}
