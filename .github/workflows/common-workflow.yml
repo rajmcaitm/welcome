@@ -42,8 +42,8 @@ permissions:
 
 env:
   APP_NAME: welcome
-  IMAGE_TAG: ${{ github.sha }}
-  IMAGE_NAME: welcome:${{ github.sha }}
+  IMAGE_TAG: ${{ inputs.APP_VERSION }}
+  IMAGE_NAME: welcome:${{ inputs.APP_VERSION }}
   #NAMESPACE: samrat-dev
   NAMESPACE: ${{
     inputs.ENV == 'prod' && 'samrat-prd' ||
@@ -54,6 +54,7 @@ env:
   DOCKER_REGISTRY: ghcr.io/${{ github.repository }}
   MAVEN_CLI_OPTS: "-B -DskipTests"
   HEALTH_URL: http://localhost:31010/welcome-app/welcome
+  APP_VERSION: ${{ inputs.APP_VERSION }}
 
 jobs:
   # --------------------------------------------------------
@@ -225,7 +226,7 @@ jobs:
         shell: pwsh
         run: |
           $namespace = "${{ env.NAMESPACE }}"
-          $imageTag = "${{ github.sha }}"
+          $imageTag = "${{ inputs.APP_VERSION }}"
           $appName = "${{ env.APP_NAME }}"
           
           echo "Deploying app name : $appName"
@@ -239,8 +240,8 @@ jobs:
           kubectl apply -f k8s/configmap.yaml -n $namespace
           kubectl apply -f k8s/service.yaml -n $namespace
 
-          # Replace ${GITHUB_SHA} in deployment.yaml and apply dynamically
-          (Get-Content k8s/deployment.yaml) -replace '\${GITHUB_SHA}', $imageTag | kubectl apply -f - -n $namespace
+          # Replace ${APP_VERSION} in deployment.yaml and apply dynamically
+          (Get-Content k8s/deployment.yaml) -replace '\${APP_VERSION}', $imageTag | kubectl apply -f - -n $namespace
 
           # Wait for rollout and show status
           kubectl rollout restart deployment/$appName -n $namespace
