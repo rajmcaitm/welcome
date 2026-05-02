@@ -5,7 +5,6 @@ metadata:
   #namespace: samrat-dev
   labels:
     app: welcome
-    version: "${APP_VERSION}"
   annotations:
     description: "Welcome application deployment"
     maintained-by: "devops-team"
