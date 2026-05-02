@@ -20,10 +20,10 @@ on:
 #      options:
 #        - master
 #        - develop
-#        - release/v1.0.0
+#        - release/v1.0.5
 #        - feature/**
     APP_VERSION:
-      description: 'Application version (e.g. 1.0.0)'
+      description: 'Application version (e.g. 1.0.5)'
       required: true
       type: string
 
