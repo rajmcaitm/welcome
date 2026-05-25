@@ -38,16 +38,12 @@ public class Producer {
         try {
 
             log.info("Initializing RabbitMQ Producer...");
-
             // Create connection
             connection = rabbitConnectionFactory.newConnection();
-
             // Create channel
             channel = connection.createChannel();
-
             // Enable publisher confirm mode
             channel.confirmSelect();
-
             // Declare queues
             declareQueue(QUEUE_NAME1);
             declareQueue(QUEUE_NAME2);
