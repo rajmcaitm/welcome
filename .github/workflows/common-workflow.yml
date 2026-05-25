@@ -23,19 +23,20 @@ on:
 #        - release/v1.0.7
 #        - feature/**
      APP_VERSION:
-      description: 'Application version (e.g. 1.0.7)'
-      required: true
-      type: string
-
-      ENV:
-       description: 'Target environment'
+       description: 'Application version (e.g. 1.0.7)'
        required: true
-       type: choice
-      options:
-        - dev
-        - int
-        - prod
-      default: dev
+       type: string
+       default: "1.0.7"
+
+       ENV:
+         description: 'Target environment'
+         required: true
+         type: choice
+         options:
+           - dev
+           - int
+           - prod
+         default: dev
 permissions:
   contents: read
   packages: write
