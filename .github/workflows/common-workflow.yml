@@ -28,7 +28,7 @@ on:
        type: string
        default: "1.0.7"
 
-       ENV:
+     ENV:
          description: 'Target environment'
          required: true
          type: choice
