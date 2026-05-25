@@ -67,20 +67,13 @@ public class Producer {
     }
 
     private void startPublishingMessageToRMQ() {
-
         Thread producerThread = new Thread(() -> {
-
             while (running) {
-
                 try {
-
                     pushingMessageToRMQ();
-
                     // Delay between messages
                     Thread.sleep(2000);
-
                 } catch (Exception ex) {
-
                     log.error("Error while publishing messages", ex);
                 }
             }
