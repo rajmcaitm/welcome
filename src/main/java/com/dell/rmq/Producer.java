@@ -2,39 +2,165 @@ package com.dell.rmq;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.MessageProperties;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Component
+@Slf4j
 public class Producer {
 
-    private final static String QUEUE_NAME1 = "my_queue";
-    private final static String QUEUE_NAME2 = "rmq_test";
-    private final static String QUEUE_NAME3 = "samrat_dharm";
+    private static final String QUEUE_NAME1 = "my_queue";
+    private static final String QUEUE_NAME2 = "rmq_test";
+    private static final String QUEUE_NAME3 = "samrat_dharm";
 
-    public static void pushingMessageToRMQ() throws Exception {
-        long count = 1;
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setUri("amqps://psyzlqct:4qL1oOK9zItvFmpqShj49PbM6fYFf5qg@shrimp.rmq.cloudamqp.com/psyzlqct");
+    @Autowired
+    private com.rabbitmq.client.ConnectionFactory rabbitConnectionFactory;
 
-        try (Connection connection = factory.newConnection();
-             Channel channel = connection.createChannel()) {
+    private Connection connection;
+    private Channel channel;
 
-            // Declare a durable queue (survives broker restart)
-            channel.queueDeclare(QUEUE_NAME1, true, false, false, null);
-            channel.queueDeclare(QUEUE_NAME2, true, false, false, null);
-            channel.queueDeclare(QUEUE_NAME3, true, false, false, null);
+    private volatile boolean running = true;
 
-            // Send 10 tasks
-            while (true){
-                String message = "Hello RMQ how are you : " + count++;
-                channel.basicPublish("", QUEUE_NAME1,
-                        null, message.getBytes("UTF-8"));
-                channel.basicPublish("", QUEUE_NAME2,
-                        null, message.getBytes("UTF-8"));
-                channel.basicPublish("", QUEUE_NAME3,
-                        null, message.getBytes("UTF-8"));
-                System.out.println("Message Sent: '" + message + "'");
-                Thread.sleep(2_000);
+    private final AtomicLong counter = new AtomicLong(1);
+
+    @PostConstruct
+    public void initialize() {
+
+        try {
+
+            log.info("Initializing RabbitMQ Producer...");
+
+            // Create connection
+            connection = rabbitConnectionFactory.newConnection();
+
+            // Create channel
+            channel = connection.createChannel();
+
+            // Enable publisher confirm mode
+            channel.confirmSelect();
+
+            // Declare queues
+            declareQueue(QUEUE_NAME1);
+            declareQueue(QUEUE_NAME2);
+            declareQueue(QUEUE_NAME3);
+
+            log.info("RabbitMQ Producer initialized successfully");
+
+            // Start continuous producer thread
+            startPublishingMessageToRMQ();
+
+        } catch (Exception ex) {
+
+            log.error("Failed to initialize RabbitMQ Producer", ex);
+
+            throw new RuntimeException("RabbitMQ Producer startup failed", ex);
+        }
+    }
+
+    private void startPublishingMessageToRMQ() {
+
+        Thread producerThread = new Thread(() -> {
+
+            while (running) {
+
+                try {
+
+                    pushingMessageToRMQ();
+
+                    // Delay between messages
+                    Thread.sleep(2000);
+
+                } catch (Exception ex) {
+
+                    log.error("Error while publishing messages", ex);
+                }
             }
+
+        });
+
+        producerThread.setName("rabbitmq-producer-thread");
+
+        producerThread.setDaemon(true);
+
+        producerThread.start();
+
+        log.info("Continuous Producer thread started");
+    }
+
+    private void declareQueue(String queueName) throws IOException {
+
+        channel.queueDeclare(queueName, true, false, false, null);
+
+        log.info("Queue declared successfully: {}", queueName);
+    }
+
+    public void pushingMessageToRMQ() {
+
+        long messageId = counter.getAndIncrement();
+
+        String message = "Hello RMQ how are you : " + messageId;
+
+        try {
+
+            publishMessage(QUEUE_NAME1, message);
+
+            publishMessage(QUEUE_NAME2, message);
+
+            publishMessage(QUEUE_NAME3, message);
+
+            log.info("Message published successfully: {}", message);
+
+        } catch (Exception ex) {
+
+            log.error("Failed to publish message: {}", message, ex);
+        }
+    }
+
+    private void publishMessage(String queueName, String message) throws IOException, InterruptedException, TimeoutException {
+
+        channel.basicPublish("", queueName, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
+
+        // Wait for broker confirmation
+        channel.waitForConfirmsOrDie(5000);
+
+        log.info("Message sent to queue [{}]: {}", queueName, message);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+
+        running = false;
+
+        log.info("Shutting down RabbitMQ Producer...");
+
+        try {
+
+            if (channel != null && channel.isOpen()) {
+
+                channel.close();
+
+                log.info("RabbitMQ channel closed");
+            }
+
+            if (connection != null && connection.isOpen()) {
+
+                connection.close();
+
+                log.info("RabbitMQ connection closed");
+            }
+
+        } catch (IOException | TimeoutException ex) {
+
+            log.error("Error while shutting down RabbitMQ resources", ex);
         }
     }
 }
