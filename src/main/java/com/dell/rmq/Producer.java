@@ -33,6 +33,9 @@ public class Producer {
     @Value("${rabbitmq.producer.enable-publisher-confirms:true}")
     private boolean enablePublisherConfirms;
 
+    @Value("${rabbitmq.producer.message-template:Hello RMQ how are you : {messageId}}")
+    private String messageTemplate;
+
     @Value("${rabbitmq.queue.durable:true}")
     private boolean queueDurable;
 
@@ -122,7 +125,7 @@ public class Producer {
 
         long messageId = counter.getAndIncrement();
 
-        String message = "Hello RMQ how are you : " + messageId;
+        String message = messageTemplate.replace("{messageId}", String.valueOf(messageId));
 
         try {
 
