@@ -8,19 +8,39 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 @Component
 @Slf4j
 public class Consumer {
 
-    private static final String QUEUE_NAME1 = "my_queue";
-    private static final String QUEUE_NAME2 = "rmq_test";
-    private static final String QUEUE_NAME3 = "samrat_dharm";
+    @Value("${rabbitmq.queues}")
+    private String queuesConfig;
+
+    @Value("${rabbitmq.consumer.prefetch-count:1}")
+    private int prefetchCount;
+
+    @Value("${rabbitmq.consumer.auto-ack:false}")
+    private boolean autoAck;
+
+    @Value("${rabbitmq.consumer.processing-delay-multiplier:100}")
+    private long processingDelayMultiplier;
+
+    @Value("${rabbitmq.queue.durable:true}")
+    private boolean queueDurable;
+
+    @Value("${rabbitmq.queue.exclusive:false}")
+    private boolean queueExclusive;
+
+    @Value("${rabbitmq.queue.auto-delete:false}")
+    private boolean queueAutoDelete;
 
     @Autowired
     private com.rabbitmq.client.ConnectionFactory rabbitConnectionFactory;
@@ -41,12 +61,16 @@ public class Consumer {
             channel = connection.createChannel();
 
             // Configure QoS
-            channel.basicQos(1);
+            channel.basicQos(prefetchCount);
+
+            // Get queue list from properties
+            List<String> queueNames = Arrays.asList(queuesConfig.split(","));
+            log.info("Configured queues: {}", queueNames);
 
             // Declare queues
-            declareQueue(QUEUE_NAME1);
-            declareQueue(QUEUE_NAME2);
-            declareQueue(QUEUE_NAME3);
+            for (String queueName : queueNames) {
+                declareQueue(queueName.trim());
+            }
 
             // Create consumer callback
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
@@ -80,9 +104,9 @@ public class Consumer {
             CancelCallback cancelCallback = consumerTag -> log.warn("Consumer cancelled: {}", consumerTag);
 
             // Start consuming
-            consumeQueue(QUEUE_NAME1, deliverCallback, cancelCallback);
-            consumeQueue(QUEUE_NAME2, deliverCallback, cancelCallback);
-            consumeQueue(QUEUE_NAME3, deliverCallback, cancelCallback);
+            for (String queueName : queueNames) {
+                consumeQueue(queueName.trim(), deliverCallback, cancelCallback);
+            }
 
             log.info("RabbitMQ Consumer started successfully");
 
@@ -94,19 +118,20 @@ public class Consumer {
 
     private void declareQueue(String queueName) throws IOException {
 
-        channel.queueDeclare(queueName, true, false, false, null);
-        log.info("Queue declared successfully: {}", queueName);
+        channel.queueDeclare(queueName, queueDurable, queueExclusive, queueAutoDelete, null);
+        log.info("Queue declared successfully: {} (durable={}, exclusive={}, auto-delete={})",
+                queueName, queueDurable, queueExclusive, queueAutoDelete);
     }
 
     private void consumeQueue(String queueName, DeliverCallback deliverCallback, CancelCallback cancelCallback) throws IOException {
-        channel.basicConsume(queueName, false, deliverCallback, cancelCallback);
-        log.info("Started consuming queue: {}", queueName);
+        channel.basicConsume(queueName, autoAck, deliverCallback, cancelCallback);
+        log.info("Started consuming queue: {} (auto-ack={})", queueName, autoAck);
     }
 
     private void processMessage(String message) throws InterruptedException {
         log.info("Processing message: {}", message);
-        // Simulate processing
-        Thread.sleep(message.length() * 100L);
+        // Simulate processing based on configurable delay
+        Thread.sleep(message.length() * processingDelayMultiplier);
         log.info("Message processed successfully");
     }
 
